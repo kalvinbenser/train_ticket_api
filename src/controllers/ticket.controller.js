@@ -177,24 +177,50 @@ const checkSeatExists = async (req) => {
                 date: date,
                 coach: coach,
                 seat: seat,
-                start: start,
-                end: end,
                 isReserved: true
             }
         })
-        console.log("exists", exists)
+        // console.log("exists", exists)
         let data = []
         if (exists.length > 0) {
+   
+
             for (let i in exists) {
-              if (((exists[i].start === "S1" && exists[i].end === "S3") && (start === "S3" && end === "S4")) || ((exists[i].start === "S1" && exists[i].end === "S2") && ((start === "S2" && end === "S3") || (start === "S2" && end === "S4") || (start === "S3" && end === "S4"))) || ((exists[i].start === "S2" && exists[i].end === "S3") && (start === "S3" && end === "S4"))) {
-
-                    data.length = 1
-                } else {
-
+                if (((exists[i].start === "S1" && exists[i].end === "S2") && (start === "S1" && end === "S2")) || ((exists[i].start === "S1" && exists[i].end === "S3") && (start === "S1" && end === "S3")) || ((exists[i].start === "S1" && exists[i].end === "S4") && (start === "S1" && end === "S4")) || ((exists[i].start === "S2" && exists[i].end === "S3") && (start === "S2" && end === "S3")) || ((exists[i].start === "S2" && exists[i].end === "S4") && (start === "S2" && end === "S4")) || ((exists[i].start === "S3" && exists[i].end === "S4") && (start === "S3" && end === "S4"))) {
+            
+                    data.length = 0
+                    break;
+                } 
+                else if ((exists[i].start === "S1" && exists[i].end === "S2") && ((start === "S1" && end === "S3") || (start === "S1" && end === "S4")) ) {
+                    data.length = 0
+                    break;
+                } 
+                else if ((exists[i].start === "S1" && exists[i].end === "S3") && ((start === "S1" && end === "S2") || (start === "S1" && end === "S4") ||  (start === "S2" && end === "S3") || (start === "S2" && end === "S4")) ) {
                     data.length = 0
                     break;
                 }
-
+                else if ((exists[i].start === "S1" && exists[i].end === "S4") && ((start === "S1" && end === "S2") || (start === "S1" && end === "S3") ||  (start === "S2" && end === "S3") || (start === "S2" && end === "S4") || (start === "S3" && end === "S4")) ) {
+                    data.length = 0
+                    break;
+                }
+                else if ((exists[i].start === "S2" && exists[i].end === "S3") && ((start === "S1" && end === "S2") || (start === "S1" && end === "S3") ||  (start === "S1" && end === "S4") || (start === "S2" && end === "S4")) ) {
+                    data.length = 0
+                    break;
+                }
+                else if ((exists[i].start === "S2" && exists[i].end === "S4") && ((start === "S1" && end === "S3") || (start === "S1" && end === "S4") ||  (start === "S2" && end === "S3") || (start === "S3" && end === "S4")) ) {
+                    data.length = 0
+                    break;
+                }
+                else if ((exists[i].start === "S3" && exists[i].end === "S4") && ((start === "S1" && end === "S4") || (start === "S2" && end === "S4") ) ) {
+                    data.length = 0
+                    break;
+                }
+                else {
+            
+                    data.length = 1
+            
+                }
+            
             }
             if (data.length > 0) {
                 resolve(true)
