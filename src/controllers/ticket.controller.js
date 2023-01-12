@@ -2,16 +2,23 @@ const moment = require('moment')
 const _ = require('lodash')
 const db = require("../db");
 const Book = db.book
+const User = db.user
+
 
 
 
 exports.getAllAvailableSeats = async (req, res) => {
     try {
         const data = await getAllSeats();
+        const user_id = req.user_id;
+        const {
+            dataValues
+        } = await User.findByPk(user_id)
+        console.log("date_of_birth", dataValues.date_of_birth)
         const a = moment();
-        const b = moment('1995-12-17', 'YYYY');
+        const b = moment(dataValues.date_of_birth, 'YYYY');
         const age = a.diff(b, 'years');
-        const gender = 2;
+        const gender = dataValues.gender;
         let filtered_data;
         if (gender === 1 && age >= 18 && age <= 40) {
             filtered_data = _.filter(data, function (d) {
@@ -59,13 +66,16 @@ const getAllSeats = async (req, res) => {
         const seats_per_coach = 20
         const total_coach_array = _.range(1, total_coach + 1)
         const seats_per_coach_array = _.range(1, seats_per_coach + 1)
-
         const total_available_seats = total_coach_array.flatMap((c) =>
-            seats_per_coach_array.map((s) => ({
-                date: today_date,
-                coach: c,
-                seat: s,
-            }))
+            seats_per_coach_array.map((s) =>
+
+                ({
+                    date: today_date,
+                    coach: c,
+                    seat: s,
+                })
+
+            )
         );
         const reservedSeats = await Book.findAll({
             where: {
@@ -74,16 +84,39 @@ const getAllSeats = async (req, res) => {
             },
             raw: true
         })
-        const total_reserved = _.map(reservedSeats, function (l) {
-            return _.pick(l, ["date", "coach", "seat"])
-        });
+        // console.log("reservedSeats", reservedSeats)
+        let total_reserved;
+        let data;
+        let data1 = []
+        if (reservedSeats.length > 0) {
+         
+            for (let i in reservedSeats) {
+                if (reservedSeats[i].start === "S1" && reservedSeats[i].end === "S4") {
+                    data1.push(reservedSeats[i])
+                }
+            }
+            // console.log("data1", data1)
+
+            if (data1.length > 0) {
+                total_reserved = _.map(data1, function (l) {
+                    return _.pick(l, ["date", "coach", "seat"])
+                });
 
 
-        const data = _.filter(total_available_seats, function (a) {
-            return !_.find(total_reserved, function (b) {
-                return (a.date === b.date && a.coach === b.coach && a.seat === b.seat)
-            })
-        })
+                data = _.filter(total_available_seats, function (a) {
+                    return !_.find(total_reserved, function (b) {
+                        return (a.date === b.date && a.coach === b.coach && a.seat === b.seat)
+                    })
+                })
+            } else {
+                data = total_available_seats
+
+            }
+
+        } else {
+            data = total_available_seats
+
+        }
 
         if (data) {
             resolve(data)
@@ -97,18 +130,32 @@ const getAllSeats = async (req, res) => {
 
 exports.bookReserveSeat = async (req, res) => {
     try {
-        const data = {
-            date: req.body.date,
-            coach: req.body.coach,
-            seat: req.body.seat,
-            user_id: req.body.user_id
+        const seat_exists = await checkSeatExists(req)
+        console.log("seat_exists", seat_exists)
+        if (seat_exists) {
+            const data = {
+                date: req.body.date,
+                coach: req.body.coach,
+                seat: req.body.seat,
+                start: req.body.start,
+                end: req.body.end,
+                user_id: req.user_id
+            }
+            const result = await Book.create(data)
+            res.send({
+                "success": true,
+                "message": "reserve seat book successfully",
+                "data": result
+            })
+        } else {
+            res.send({
+                "success": false,
+                "message": "seat not exist",
+
+            })
         }
-        const result = await Book.create(data)
-        res.send({
-            "success": true,
-            "message": "reserve seat book successfully",
-            "data": result
-        })
+
+
 
     } catch (e) {
         res.send({
@@ -118,6 +165,52 @@ exports.bookReserveSeat = async (req, res) => {
     }
 }
 
+const checkSeatExists = async (req) => {
+    return new Promise(async (resolve) => {
+        const date = req.body.date
+        const coach = req.body.coach
+        const seat = req.body.seat
+        const start = req.body.start
+        const end = req.body.end
+        const exists = await Book.findAll({
+            where: {
+                date: date,
+                coach: coach,
+                seat: seat,
+                start: start,
+                end: end,
+                isReserved: true
+            }
+        })
+        console.log("exists", exists)
+        let data = []
+        if (exists.length > 0) {
+            for (let i in exists) {
+              if (((exists[i].start === "S1" && exists[i].end === "S3") && (start === "S3" && end === "S4")) || ((exists[i].start === "S1" && exists[i].end === "S2") && ((start === "S2" && end === "S3") || (start === "S2" && end === "S4") || (start === "S3" && end === "S4"))) || ((exists[i].start === "S2" && exists[i].end === "S3") && (start === "S3" && end === "S4"))) {
+
+                    data.length = 1
+                } else {
+
+                    data.length = 0
+                    break;
+                }
+
+            }
+            if (data.length > 0) {
+                resolve(true)
+
+            } else {
+                resolve(false)
+
+            }
+
+        } else {
+            resolve(true)
+
+        }
+
+    })
+}
 
 exports.cancelReserveSeat = async (req, res) => {
     try {
@@ -128,14 +221,17 @@ exports.cancelReserveSeat = async (req, res) => {
         }
         const result = await Book.update(data, {
             where: {
-                id: book_id
+                id: book_id,
+                user_id:req.user_id
             }
         })
+
         res.send({
             "success": true,
             "message": "cancel reserve seat successfully",
             "data": result
         })
+      
 
     } catch (e) {
         res.send({

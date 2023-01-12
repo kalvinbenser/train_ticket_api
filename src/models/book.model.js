@@ -12,6 +12,16 @@ module.exports = (sequelize, Sequelize) => {
             type: Sequelize.INTEGER,
             allowNull: false,
         },
+        start: {
+            type: Sequelize.STRING,
+            allowNull: false,
+            comment:"S1-station1,S2-station2,S3-station3,S4-station4"
+        },
+        end: {
+            type: Sequelize.STRING,
+            allowNull: false,
+            comment:"S1-station1,S2-station2,S3-station3,S4-station4"
+        },
         isReserved: {
             type: Sequelize.BOOLEAN,
             allowNull: false,
