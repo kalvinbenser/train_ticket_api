@@ -20,7 +20,6 @@ db.sequelize = sequelize;
 
 
 db.user = require("./models/user.model")(sequelize, Sequelize);
-db.book = require("./models/book.model")(sequelize, Sequelize);
 
 
 
